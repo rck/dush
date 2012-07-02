@@ -169,10 +169,10 @@ int main(int argc, char **argv)
 
       if (args.graph)
       {
-         puts(" [");
+         fputs(" [", stdout);
          for (int j = 0; j < nbiggest[i].size * width / max; ++j)
-            puts("#");
-         puts("]\n");
+            putchar('#');
+         puts("]");
       }
    }
 
