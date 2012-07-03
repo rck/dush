@@ -77,6 +77,10 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
    if ( (typeflag == FTW_F) && (nbiggest[0].size < sb->st_size) )
    {
+      /* free old name */
+      if (nbiggest[0].name != NULL)
+         free(nbiggest[0].name);
+
       nbiggest[0].size = sb->st_size;
       nbiggest[0].name = strdup(path);
 
