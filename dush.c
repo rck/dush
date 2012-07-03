@@ -71,7 +71,7 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
       skip += ignore(path, ".hg");
       skip += ignore(path, ".svn");
 
-      if (skip)
+      if (skip != 0)
          return FTW_SKIP_SUBTREE;
    }
 
