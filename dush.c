@@ -25,8 +25,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/ioctl.h>
 #include <ftw.h>
 
+/* "external" sources */
+#include "uthash.h"
+
 /* globals */
-unsigned int width = 77; /* 80 - 'space' -  [] */
+unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
 const char *name = "dush";
 
 enum dispsize {G, M, K, B};
@@ -34,21 +37,55 @@ const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
 struct args {
    long nbiggest;
-   bool full, graph, list;
+   bool full, graph, list, dirs;
    enum dispsize size;
    const char *path;
 } args;
 
 struct finfo {
-   char *name;
-   off_t size;
-} *nbiggest = NULL;
+   char *name; /* key for dirs */
+   unsigned long long size;
+   UT_hash_handle hh; /* makes this structure hashable */
+};
+
+struct finfo *nbiggestf = NULL;
+struct finfo *biggest_dirs = NULL;
 
 /* prototypes */
 static void parse_args(int, char **, struct args *);
 static int ignore(const char *, const char *);
 static void freeres(void);
 static void usage(void);
+
+int size_sort(struct finfo *a, struct finfo *b)
+{
+   return (b->size - a->size);
+}
+
+void insert_sorted(struct finfo *list, const char *name, unsigned long long size)
+{
+   /* free old name */
+   if (list[0].name != NULL)
+      free(list[0].name);
+
+   list[0].size = size;
+   list[0].name = strdup(name);
+
+   /* bubble up */
+   for (int i = 0; i < args.nbiggest - 1; ++i)
+   {
+      if (list[i].size > list[i+1].size)
+      {
+         struct finfo tmp;
+
+         tmp = list[i];
+         list[i] = list[i+1];
+         list[i+1] = tmp;
+      }
+      else 
+         break;
+   }
+}
 
 static int walkdirs(const char *path, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
 {
@@ -73,30 +110,57 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
       if (skip != 0)
          return FTW_SKIP_SUBTREE;
+
+      if (args.dirs)
+      {
+         struct finfo *newdir = malloc(sizeof(*newdir));
+         newdir->size = 0;
+         newdir->name = strdup(path);
+         HASH_ADD_KEYPTR(hh, biggest_dirs, newdir->name, strlen(newdir->name), newdir);
+      }
    }
 
-   if ( (typeflag == FTW_F) && (nbiggest[0].size < sb->st_size) )
+   if (typeflag == FTW_F) 
    {
-      /* free old name */
-      if (nbiggest[0].name != NULL)
-         free(nbiggest[0].name);
-
-      nbiggest[0].size = sb->st_size;
-      nbiggest[0].name = strdup(path);
-
-      /* bubble up */
-      for (int i = 0; i < args.nbiggest - 1; ++i)
+      if (nbiggestf[0].size < sb->st_size) /* add it to list of biggest files */
       {
-         if (nbiggest[i].size > nbiggest[i+1].size)
+         /* free old name */
+         if (nbiggestf[0].name != NULL)
+            free(nbiggestf[0].name);
+
+         nbiggestf[0].size = sb->st_size;
+         nbiggestf[0].name = strdup(path);
+
+         /* bubble up */
+         for (int i = 0; i < args.nbiggest - 1; ++i)
          {
-            struct finfo tmp;
-            
-            tmp = nbiggest[i];
-            nbiggest[i] = nbiggest[i+1];
-            nbiggest[i+1] = tmp;
+            if (nbiggestf[i].size > nbiggestf[i+1].size)
+            {
+               struct finfo tmp;
+
+               tmp = nbiggestf[i];
+               nbiggestf[i] = nbiggestf[i+1];
+               nbiggestf[i+1] = tmp;
+            }
+            else 
+               break;
          }
+      }
+
+      if (args.dirs)
+      {
+         struct finfo *dir;
+         char *duppath = strdup(path);
+         char *dname = dirname(duppath);
+
+         HASH_FIND_STR(biggest_dirs, dname, dir);
+
+         if (dir) 
+            dir->size += sb->st_size;
          else 
-            break;
+            fprintf(stderr, "something went wrong (%s)\n", path);
+
+         free(duppath);
       }
    }
 
@@ -111,23 +175,38 @@ int main(int argc, char **argv)
    args.full = false;
    args.graph = false;
    args.list = false;
+   args.dirs = false;
    args.size = M;
    args.nbiggest = 10;
    args.path = ".";
 
    parse_args(argc, argv, &args);
 
-   nbiggest = calloc(args.nbiggest, sizeof(*nbiggest));
+   nbiggestf = calloc(args.nbiggest, sizeof(*nbiggestf));
 
-   if (nbiggest == NULL)
+   if (nbiggestf == NULL)
    {
       perror(name);
       exit(EXIT_FAILURE);
    }
-
+   
    nftw(args.path, walkdirs, 50, FTW_ACTIONRETVAL|FTW_PHYS);
 
-   off_t max = nbiggest[args.nbiggest - 1].size;
+   if (args.dirs)
+   {
+      HASH_SORT(biggest_dirs, size_sort);
+      struct finfo *s, *tmp;
+      HASH_ITER(hh, biggest_dirs, s, tmp)
+      {
+         if (s->size > nbiggestf[0].size)
+            insert_sorted(nbiggestf, s->name, s->size);
+         else
+            break;
+         /* printf("%s %lld\n", s->name, s->size); */
+      }
+   }
+
+   unsigned long long max = nbiggestf[args.nbiggest - 1].size;
    /* using it for division, just to be safe... */
    max = max > 0 ? max : 1;
 
@@ -136,21 +215,21 @@ int main(int argc, char **argv)
    /* get terminal width if possible */
    struct winsize w;
    if (ioctl(0, TIOCGWINSZ, &w) != -1)
-      width = w.ws_col - 3; /* width - 'space' -  [] */
+      width = w.ws_col - 3; /* width - MODE -  [] */
 
    for (int i = args.nbiggest - 1 ; i >= 0; --i)
    {
-      if (nbiggest[i].name == NULL) break;
+      if (nbiggestf[i].name == NULL) break;
 
       /* do not calc size if in list mode */
       if (args.list)
       {
-         puts(nbiggest[i].name);
+         puts(nbiggestf[i].name);
          /* if in list mode, don't print anything else */
          continue;
       }
 
-      off_t dsize = nbiggest[i].size;
+      unsigned long long dsize = nbiggestf[i].size;
       switch (args.size)
       {
          case G:
@@ -168,13 +247,28 @@ int main(int argc, char **argv)
 
       /* non list-mode output */
       printf("%s: %lld %s\n",
-            args.full ? nbiggest[i].name : basename(nbiggest[i].name),
+            args.full ? nbiggestf[i].name : basename(nbiggestf[i].name),
             (long long int)dsize, dispsizemap[args.size]);
 
       if (args.graph)
       {
-         fputs(" [", stdout);
-         for (unsigned long long j = 0; j < (unsigned long long)nbiggest[i].size * width; j += max)
+         struct stat sb;
+
+         if (stat(nbiggestf[i].name, &sb) == -1)
+         {
+            freeres();
+            exit(EXIT_FAILURE);
+         }
+
+         if (S_ISREG(sb.st_mode))
+            putchar('R');
+         else if (S_ISDIR(sb.st_mode))
+            putchar('D');
+         else
+            putchar('-');
+
+         fputs("[", stdout);
+         for (unsigned long long j = 0; j < (unsigned long long)nbiggestf[i].size * width; j += max)
             putchar('#');
          puts("]");
       }
@@ -188,13 +282,29 @@ int main(int argc, char **argv)
 static void freeres(void)
 {
    /* free stuff */
-   if (nbiggest != NULL)
+   if (nbiggestf != NULL)
    {
       for (int i = 0; i < args.nbiggest; ++i)
-         if (nbiggest[i].name != NULL)
-            free(nbiggest[i].name); /* strduped names */
+         if (nbiggestf[i].name != NULL)
+            free(nbiggestf[i].name); /* strduped names */
 
-      free(nbiggest);
+      free(nbiggestf);
+   }
+
+   if (args.dirs)
+   {
+      struct finfo *c, *tmp;
+
+      HASH_ITER(hh, biggest_dirs, c, tmp)
+      {
+         HASH_DEL(biggest_dirs, c);
+         /* printf("c->name: %p\n", c->name); */
+         /* printf("c->name: %s\n", c->name); */
+         /* printf("c->size: %lld\n", c->size); */
+         /* printf("c: %p\n", c); */
+         free(c->name);
+         free(c);
+      }
    }
 }
 
@@ -204,7 +314,7 @@ static void parse_args(int argc, char **argv, struct args *args)
    long int optn;
    char *endptr;
 
-   while ((opt = getopt(argc, argv, "hlvgmkbfn:")) != -1)
+   while ((opt = getopt(argc, argv, "dhlvgmkbfn:")) != -1)
    {
       switch (opt)
       {
@@ -225,6 +335,9 @@ static void parse_args(int argc, char **argv, struct args *args)
             break;
          case 'f':
             args->full = true;
+            break;
+         case 'd':
+            args->dirs = true;
             break;
          case 'v':
             args->graph = true;
@@ -300,6 +413,7 @@ static void usage(void)
          "  -v: print a graph\n"
          "  -l: print a list without any additional infos\n"
          "  -f: display full path (not only the basename)\n"
+         "  -d: include stats for directories\n"
          "  -n: NUM biggest files\n", name);
    exit(EXIT_FAILURE);
 }
