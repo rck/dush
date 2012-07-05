@@ -123,29 +123,7 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
    if (typeflag == FTW_F) 
    {
       if (nbiggestf[0].size < sb->st_size) /* add it to list of biggest files */
-      {
-         /* free old name */
-         if (nbiggestf[0].name != NULL)
-            free(nbiggestf[0].name);
-
-         nbiggestf[0].size = sb->st_size;
-         nbiggestf[0].name = strdup(path);
-
-         /* bubble up */
-         for (int i = 0; i < args.nbiggest - 1; ++i)
-         {
-            if (nbiggestf[i].size > nbiggestf[i+1].size)
-            {
-               struct finfo tmp;
-
-               tmp = nbiggestf[i];
-               nbiggestf[i] = nbiggestf[i+1];
-               nbiggestf[i+1] = tmp;
-            }
-            else 
-               break;
-         }
-      }
+         insert_sorted(nbiggestf, path, sb->st_size);
 
       if (args.dirs)
       {
