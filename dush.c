@@ -31,13 +31,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* globals */
 unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
 const char *name = "dush";
+unsigned int fcount = 0;
 
 enum dispsize {G, M, K, B};
 const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
 struct args {
    long nbiggest;
-   bool full, graph, list, dirs;
+   bool full, graph, list, dirs, count;
    enum dispsize size;
    const char *path;
 } args;
@@ -99,6 +100,12 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
    printf("%s: %d\n", path, (int)sb->st_size);
 #endif
 
+   if (args.count)
+   {
+      printf("\r%d", ++fcount);
+      fflush(stdout);
+   }
+
    if (typeflag == FTW_D)
    {
       unsigned int skip = 0;
@@ -154,11 +161,14 @@ int main(int argc, char **argv)
    args.graph = false;
    args.list = false;
    args.dirs = false;
+   args.count = true;
    args.size = M;
    args.nbiggest = 10;
    args.path = ".";
 
    parse_args(argc, argv, &args);
+
+   if (args.list) args.count = false;
 
    nbiggestf = calloc(args.nbiggest, sizeof(*nbiggestf));
 
@@ -189,6 +199,7 @@ int main(int argc, char **argv)
    max = max > 0 ? max : 1;
 
    /* print result */
+   if (args.count) puts(" files/directories\n");
 
    /* get terminal width if possible */
    struct winsize w;
@@ -292,7 +303,7 @@ static void parse_args(int argc, char **argv, struct args *args)
    long int optn;
    char *endptr;
 
-   while ((opt = getopt(argc, argv, "dhlvgmkbfn:")) != -1)
+   while ((opt = getopt(argc, argv, "dchlvgmkbfn:")) != -1)
    {
       switch (opt)
       {
@@ -307,6 +318,9 @@ static void parse_args(int argc, char **argv, struct args *args)
             break;
          case 'g':
             args->size = G;
+            break;
+         case 'c':
+            args->count = false;
             break;
          case 'l':
             args->list = true;
@@ -392,6 +406,7 @@ static void usage(void)
          "  -l: print a list without any additional infos\n"
          "  -f: display full path (not only the basename)\n"
          "  -d: include stats for directories\n"
+         "  -c: disable count while reading\n"
          "  -n: NUM biggest files\n", name);
    exit(EXIT_FAILURE);
 }
