@@ -195,8 +195,6 @@ int main(int argc, char **argv)
    }
 
    unsigned long long max = nbiggestf[args.nbiggest - 1].size;
-   /* using it for division, just to be safe... */
-   max = max > 0 ? max : 1;
 
    /* print result */
    if (args.count) puts(" files/directories\n");
