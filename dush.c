@@ -100,9 +100,10 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
    printf("%s: %d\n", path, (int)sb->st_size);
 #endif
 
-   if (args.count)
+   ++fcount;
+   if (args.count && fcount % 10 == 0)
    {
-      printf("\r%d", ++fcount);
+      printf("\r%d", fcount);
       fflush(stdout);
    }
 
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
    args.graph = false;
    args.list = false;
    args.dirs = false;
-   args.count = true;
+   args.count = false;
    args.size = M;
    args.nbiggest = 10;
    args.path = ".";
@@ -197,7 +198,7 @@ int main(int argc, char **argv)
    unsigned long long max = nbiggestf[args.nbiggest - 1].size;
 
    /* print result */
-   if (args.count) puts(" files/directories\n");
+   if (args.count) printf("\r%d files/directories\n", fcount);
 
    /* get terminal width if possible */
    struct winsize w;
@@ -318,7 +319,7 @@ static void parse_args(int argc, char **argv, struct args *args)
             args->size = G;
             break;
          case 'c':
-            args->count = false;
+            args->count = true;
             break;
          case 'l':
             args->list = true;
@@ -404,7 +405,7 @@ static void usage(void)
          "  -l: print a list without any additional infos\n"
          "  -f: display full path (not only the basename)\n"
          "  -d: include stats for directories\n"
-         "  -c: disable count while reading\n"
+         "  -c: enable count while reading\n"
          "  -n: NUM biggest files\n", name);
    exit(EXIT_FAILURE);
 }
