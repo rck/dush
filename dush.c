@@ -167,14 +167,14 @@ int main(int argc, char **argv)
       }
 
       /* non list-mode output */
-      printf("%s: %lld %s\n", 
+      printf("%s: %lld %s\n",
             args.full ? nbiggest[i].name : basename(nbiggest[i].name),
             (long long int)dsize, dispsizemap[args.size]);
 
       if (args.graph)
       {
          fputs(" [", stdout);
-         for (int j = 0; j < nbiggest[i].size * width / max; ++j)
+         for (unsigned long long j = 0; j < (unsigned long long)nbiggest[i].size * width; j += max)
             putchar('#');
          puts("]");
       }
