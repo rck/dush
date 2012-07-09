@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ftw.h>
 
 /* "external" sources */
-#include "uthash.h"
+#include <uthash.h>
 
 /* globals */
 unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
