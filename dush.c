@@ -58,12 +58,12 @@ static int ignore(const char *, const char *);
 static void freeres(void);
 static void usage(void);
 
-int size_sort(struct finfo *a, struct finfo *b)
+static int size_sort(struct finfo *a, struct finfo *b)
 {
    return (b->size - a->size);
 }
 
-void insert_sorted(struct finfo *list, const char *name, unsigned long long size)
+static void insert_sorted(struct finfo *list, const char *name, unsigned long long size)
 {
    /* free old name */
    if (list[0].name != NULL)
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 
    /* get terminal width if possible */
    struct winsize w;
-   if (ioctl(0, TIOCGWINSZ, &w) != -1)
+   if (ioctl(1, TIOCGWINSZ, &w) != -1)
       width = w.ws_col - 3; /* width - MODE -  [] */
 
    for (int i = args.nbiggest - 1 ; i >= 0; --i)
