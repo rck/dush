@@ -14,10 +14,17 @@ if (NOT HAVE_UTHASH_H)
    message(FATAL_ERROR "Install uthash")
 endif()
 
-#include (CheckSymbolExists)
-#
-#CHECK_SYMBOL_EXISTS(FTW_ACTIONRETVAL ftw.h HAVE_ACTIONRETVAL)
-#
-#if (NOT HAVE_ACTIONRETVAL)
-#   message(FATAL_ERROR "You need at least glibc 2.3.3")
-#endif()
+include (CheckSymbolExists)
+# first shot, maybe someday other libcs catch up...
+CHECK_SYMBOL_EXISTS(FTW_ACTIONRETVAL ftw.h HAVE_ACTIONRETVAL_LIBC)
+
+if (NOT HAVE_ACTIONRETVAL_LIBC) # not in your clib, check for glibc
+   message(STATUS "FTW_ACTIONRETVAL not defined, trying -D_GNU_SOURCE")
+   set(CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+   CHECK_SYMBOL_EXISTS(FTW_ACTIONRETVAL ftw.h HAVE_ACTIONRETVAL_GLIBC)
+   if (HAVE_ACTIONRETVAL_GLIBC)
+      add_definitions(-D_GNU_SOURCE)
+   else()
+      message(FATAL_ERROR "FTW_ACTIONRETVAL not defined, get glibc")
+   endif()
+endif()
