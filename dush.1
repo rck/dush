@@ -1,0 +1,63 @@
+.TH DUSH 1 "July 10, 2012" "Dush User Manual"
+.SH NAME
+.PP
+dush - find and display largest files/directories
+.SH SYNOPSIS
+.PP
+dush [\f[I]OPTION\f[]]...
+[\f[I]PATH\f[]]
+.SH DESCRIPTION
+.PP
+Dush recursively walks a given directory and generates stats according
+to the size of contained files and/or directories.
+.PP
+If no \f[I]PATH\f[] is specified, dush starts at \[aq].\[aq].
+.SH OPTIONS
+.TP
+.B -b|k|m|g
+Output size in bytes, KB, MB or GB.
+.RS
+.RE
+.TP
+.B -n \f[I]NUM\f[]
+Display \f[I]NUM\f[] largest files.
+.RS
+.RE
+.TP
+.B -v
+Print an ASCII graph showing how large files are compared to the largest
+one.
+.RS
+.RE
+.TP
+.B -d
+Include directories in the statistic.
+The size of a directory is the sum of the regular files in that
+directory (no subdirectories).
+.RS
+.RE
+.TP
+.B -f
+Print full path of a file.
+Without it, display only the basename
+.RS
+.RE
+.TP
+.B -c
+Display a count while walking the directory tree (slows down output a
+bit).
+.RS
+.RE
+.TP
+.B -l
+Output only the file names, nothing else.
+This can be used to pipe the output to other programs (e.g., xargs rm
+-rf).
+Basically it enables \f[I]-f\f[], and disables all other gimmicks.
+.RS
+.RE
+.SH Contributions
+.PP
+Benedikt Huber
+.SH AUTHORS
+Roland Kammerer.

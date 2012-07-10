@@ -3,6 +3,7 @@ project (dush C)
 add_executable(dush dush.c)
 
 install (TARGETS dush DESTINATION bin)
+install (FILES dush.1 DESTINATION share/man/man1)
 
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 
