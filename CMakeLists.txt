@@ -33,7 +33,7 @@ endif()
 # build a CPack driven installer package
 # generall:
 include (InstallRequiredSystemLibraries)
-set (CPACK_PACKAGE_NAME "dush")
+set (CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
 set (CPACK_PACKAGE_CONTACT 
    "Roland Kammerer <dev.rck@gmail.com>")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY 
@@ -45,6 +45,10 @@ set (CPACK_PACKAGE_VERSION_MINOR "1")
 
 # DEB specific
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "uthash-dev (>=1.8)")
+set (CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "uthash-dev (>=1.8)")
+
+# RPM specific
+set (CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+set (CPACK_RPM_PACKAGE_LICENSE "GPLv3+")
 
 include (CPack)
