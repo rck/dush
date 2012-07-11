@@ -12,8 +12,13 @@
 - $ cd ~/build/dush
 - $ makepkg -srci
 
-## Debian/Ubuntu
-- if not on amd64, change CPACK_DEBIAN_PACKAGE_ARCHITECTURE (dpkg --print-architecture) in CMakeLists.txt
+## deb based
 - $ cmake .
 - $ cpack -G DEB CPackConfig.cmake
 - dpkg -i the generated .deb
+
+## rpm based
+- if not on x86_64, change CPACK_RPM_PACKAGE_ARCHITECTURE in CMakeLists.txt
+- $ cmake .
+- $ cpack -G RPM CPackConfig.cmake
+- rpm -U the generated .rpm
