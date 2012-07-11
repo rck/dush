@@ -1,0 +1,19 @@
+# Building from Source
+- get source code
+- get cmake
+- get uthash (e.g., uthash-dev on debian based systems, from AUR on Arch)
+- $ cmake . && make
+- $ sudo make install
+ 
+# Packaging
+## Arch GNU/Linux
+- $ mkdir ~/build/dush
+- cp the provided PKGBUILD to ~/build/dush
+- $ cd ~/build/dush
+- $ makepkg -srci
+
+## Debian/Ubuntu
+- if not on amd64, change CPACK_DEBIAN_PACKAGE_ARCHITECTURE (dpkg --print-architecture) in CMakeLists.txt
+- $ cmake .
+- $ cpack -G DEB CPackConfig.cmake
+- dpkg -i the generated .deb
