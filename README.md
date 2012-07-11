@@ -33,7 +33,7 @@ If no *PATH* is specified, dush starts at '.'.
     the regular files in that directory (no subdirectories).
 
 -f
-:   Print full path of a file. Without it, display only the basename
+:   Print full path of a file. Without it, display only the basename.
 
 -c
 :   Display a count while walking the directory tree (slows down output a bit).
@@ -43,6 +43,9 @@ If no *PATH* is specified, dush starts at '.'.
     to other programs (e.g., xargs rm -rf). Basically it enables *-f*, and disables
     all other gimmicks.
 
-# Contributions
+-h
+:   Display this help and exit.
+
+# CONTRIBUTORS
 Benedikt Huber
 
