@@ -5,7 +5,7 @@ add_executable(dush dush.c)
 install (TARGETS dush DESTINATION bin)
 install (FILES dush.1 DESTINATION share/man/man1)
 
-set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
+set (CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 
 include (CheckIncludeFiles)
 
@@ -29,3 +29,22 @@ if (NOT HAVE_ACTIONRETVAL_LIBC) # not in your clib, check for glibc
       message(FATAL_ERROR "FTW_ACTIONRETVAL not defined, get glibc")
    endif()
 endif()
+
+# build a CPack driven installer package
+# generall:
+include (InstallRequiredSystemLibraries)
+set (CPACK_PACKAGE_VERSION_NAME "dush")
+set (CPACK_PACKAGE_CONTACT 
+   "Roland Kammerer <dev.rck@gmail.com>")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY 
+   "find and display largest files/directories")
+set (CPACK_RESOURCE_FILE_LICENSE  
+   "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
+set (CPACK_PACKAGE_VERSION_MAJOR "0")
+set (CPACK_PACKAGE_VERSION_MINOR "1")
+
+# DEB specific
+set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "uthash-dev (>=1.8)")
+
+include (CPack)
