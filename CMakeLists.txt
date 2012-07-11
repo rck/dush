@@ -33,7 +33,7 @@ endif()
 # build a CPack driven installer package
 # generall:
 include (InstallRequiredSystemLibraries)
-set (CPACK_PACKAGE_VERSION_NAME "dush")
+set (CPACK_PACKAGE_NAME "dush")
 set (CPACK_PACKAGE_CONTACT 
    "Roland Kammerer <dev.rck@gmail.com>")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY 
