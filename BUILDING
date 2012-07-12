@@ -2,7 +2,10 @@
 - get source code
 - get cmake
 - get uthash (e.g., uthash-dev on debian based systems, from AUR on Arch)
-- $ cmake . && make
+- extract source code and cd to it
+- $ mkdir build
+- $ cd build
+- $ cmake .. && make
 - $ sudo make install
  
 # Packaging
@@ -13,12 +16,12 @@
 - $ makepkg -srci
 
 ## deb based
-- $ cmake .
+- everything from "Building from Source" without "sudo make install"
 - $ cpack -G DEB CPackConfig.cmake
 - dpkg -i the generated .deb
 
 ## rpm based
 - if not on x86_64, change CPACK_RPM_PACKAGE_ARCHITECTURE in CMakeLists.txt
-- $ cmake .
+- everything from "Building from Source" without "sudo make install"
 - $ cpack -G RPM CPackConfig.cmake
 - rpm -U the generated .rpm
