@@ -22,20 +22,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <errno.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 #include <ftw.h>
 
 /* "external" sources */
 #include <uthash.h>
 
+#define COUNT_OF(x) (sizeof(x)/sizeof(x[0]))
+
 /* globals */
-unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
-const char *name = "dush";
-unsigned int fcount = 0;
+static unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
+static const char *name = "dush";
+static unsigned int fcount = 0;
+static volatile bool terminating = false;
 
 enum dispsize {G, M, K, B};
-const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
+static const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
-struct args {
+static struct args {
    long nbiggest;
    bool full, graph, list, dirs, count;
    enum dispsize size;
@@ -48,14 +52,15 @@ struct finfo {
    UT_hash_handle hh; /* makes this structure hashable */
 };
 
-struct finfo *nbiggestf = NULL;
-struct finfo *biggest_dirs = NULL;
+static struct finfo *nbiggestf = NULL;
+static struct finfo *biggest_dirs = NULL;
 
 /* prototypes */
 static void parse_args(int, char **, struct args *);
 static int ignore(const char *, const char *);
 static void freeres(void);
 static void usage(void);
+static void signal_handler(int);
 
 static int size_sort(struct finfo *a, struct finfo *b)
 {
@@ -98,6 +103,8 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
       printf("- ");
    printf("%s: %d\n", path, (int)sb->st_size);
 #endif
+
+   if (terminating) return FTW_STOP;
 
    ++fcount;
    if (args.count && fcount % 10 == 0)
@@ -165,6 +172,26 @@ int main(int argc, char **argv)
    args.size = M;
    args.nbiggest = 10;
    args.path = ".";
+
+   /* setup signal handler */
+   sigset_t blocked_signals;
+
+   if(sigfillset(&blocked_signals) == -1) 
+      exit(EXIT_FAILURE);
+   else
+   {
+      const int signals[] = { SIGINT, SIGQUIT, SIGTERM };
+      struct sigaction s;
+      s.sa_handler = signal_handler;
+      (void) memcpy(&s.sa_mask, &blocked_signals, sizeof(s.sa_mask));
+      s.sa_flags = SA_RESTART;
+      for(int i = 0; i < COUNT_OF(signals); ++i) 
+         if (sigaction(signals[i], &s, NULL) < 0) 
+         {
+            perror(name);
+            exit(EXIT_FAILURE);
+         }
+   }
 
    parse_args(argc, argv, &args);
 
@@ -407,4 +434,9 @@ static void usage(void)
          "  -c: enable count while reading\n"
          "  -n: NUM biggest files\n", name);
    exit(EXIT_FAILURE);
+}
+
+static void signal_handler(int sig)
+{
+   terminating = true;
 }
