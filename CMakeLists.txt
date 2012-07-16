@@ -1,5 +1,12 @@
 cmake_minimum_required (VERSION 2.6)
 project (dush C)
+
+set (PROG_VERSION_MAJOR 0)
+set (PROG_VERSION_MINOR 3)
+
+# include binary file in order to find config.h
+include_directories("${PROJECT_BINARY_DIR}")
+
 add_executable(dush dush.c)
 
 install (TARGETS dush DESTINATION bin)
@@ -15,7 +22,12 @@ if (NOT HAVE_UTHASH_H)
    message(FATAL_ERROR "Install uthash")
 endif()
 
+include (CheckFunctionExists)
+
+CHECK_FUNCTION_EXISTS("getopt_long" HAVE_GETOPT_LONG)
+
 include (CheckSymbolExists)
+
 # first shot, maybe someday other libcs catch up...
 CHECK_SYMBOL_EXISTS(FTW_ACTIONRETVAL ftw.h HAVE_ACTIONRETVAL_LIBC)
 
@@ -30,6 +42,11 @@ if (NOT HAVE_ACTIONRETVAL_LIBC) # not in your clib, check for glibc
    endif()
 endif()
 
+configure_file (
+   "${PROJECT_SOURCE_DIR}/config.h.in"
+   "${PROJECT_BINARY_DIR}/config.h"
+)
+
 # build a CPack driven installer package
 # generall:
 include (InstallRequiredSystemLibraries)
@@ -40,8 +57,8 @@ set (CPACK_PACKAGE_DESCRIPTION_SUMMARY
    "find and display largest files/directories")
 set (CPACK_RESOURCE_FILE_LICENSE  
    "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
-set (CPACK_PACKAGE_VERSION_MAJOR "0")
-set (CPACK_PACKAGE_VERSION_MINOR "2")
+set (CPACK_PACKAGE_VERSION_MAJOR "${PROG_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${PROG_VERSION_MINOR}")
 
 # DEB specific
 set (CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "uthash-dev (>=1.8)")

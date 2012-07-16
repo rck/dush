@@ -22,30 +22,30 @@ If no *PATH* is specified, dush starts at '.'.
 -b|k|m|g 
 :   Output size in bytes, KB, MB or GB.
 
--n *NUM*
+-n *NUM*, \--num *NUM*
 :   Display *NUM* largest files.
 
--v 
+-v, \--graph 
 :   Print an ASCII graph showing how large files are compared to the largest one.
 
--d 
+-d, \--dirs 
 :   Include directories in the statistic. The size of a directory is the sum of
     the regular files in that directory (no subdirectories).
 
--f
+-f, \--full
 :   Print full path of a file. Without it, display only the basename.
 
--c
+-c, \--count
 :   Display a count while walking the directory tree (slows down output a bit).
 
--l
+-l, \--list
 :   Output only the file names, nothing else. This can be used to pipe the output
     to other programs (e.g., xargs rm -rf). Basically it enables *-f*, and disables
     all other gimmicks.
 
--h
+-h, \--help
 :   Display this help and exit.
 
 # CONTRIBUTORS
-Benedikt Huber
+Benedikt Huber.
 

@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* "external" sources */
 #include <uthash.h>
 
+#include "config.h"
+
 #define COUNT_OF(x) (sizeof(x)/sizeof(x[0]))
 
 /* globals */
@@ -328,7 +330,25 @@ static void parse_args(int argc, char **argv, struct args *args)
    long int optn;
    char *endptr;
 
+#ifdef HAVE_GETOPT_LONG
+   static struct option longopts[] = {
+      { "count",  no_argument,         NULL, 'c' },
+      { "list",   no_argument,         NULL, 'l' },
+      { "full",   no_argument,         NULL, 'f' },
+      { "dirs",   no_argument,         NULL, 'd' },
+      { "graph",  no_argument,         NULL, 'v' },
+      { "num",    required_argument,   NULL, 'n' },
+      { "help",   no_argument,         NULL, 'h' },
+      { NULL,     0,                   NULL, 0 }
+   };
+#endif
+
+
+#ifdef HAVE_GETOPT_LONG
+   while ((opt = getopt_long(argc, argv, "dchlvgmkbfn:", longopts, NULL)) != -1)
+#else
    while ((opt = getopt(argc, argv, "dchlvgmkbfn:")) != -1)
+#endif
    {
       switch (opt)
       {
@@ -424,6 +444,7 @@ static int ignore(const char *heystack, const char *needle)
 static void usage(void)
 {
    fprintf(stderr, 
+         "%s Version %d.%d:\n\n"
          "Usage: %s [OPTION]... [PATH]\n"
          "  -h: print this help\n"
          "  -b|k|m|g: size in B, KB, MB, GB\n"
@@ -432,7 +453,11 @@ static void usage(void)
          "  -f: display full path (not only the basename)\n"
          "  -d: include stats for directories\n"
          "  -c: enable count while reading\n"
-         "  -n: NUM biggest files\n", name);
+         "  -n: NUM biggest files\n"
+#ifdef HAVE_GETOPT_LONG
+         "\nFor long options please refere to the man page\n"
+#endif
+         , name, VERSION_MAJOR, VERSION_MINOR, name);
    exit(EXIT_FAILURE);
 }
 
