@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <ftw.h>
@@ -229,9 +230,11 @@ int main(int argc, char **argv)
    if (args.count) printf("\r%d files/directories\n", fcount);
 
    /* get terminal width if possible */
+#ifdef HAVE_STRUCT_WINSIZE
    struct winsize w;
-   if (ioctl(1, TIOCGWINSZ, &w) != -1)
+   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) != -1)
       width = w.ws_col - 3; /* width - MODE -  [] */
+#endif /* else there is a a global default */
 
    for (int i = args.nbiggest - 1 ; i >= 0; --i)
    {

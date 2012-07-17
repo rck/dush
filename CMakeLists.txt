@@ -26,6 +26,11 @@ include (CheckFunctionExists)
 
 CHECK_FUNCTION_EXISTS("getopt_long" HAVE_GETOPT_LONG)
 
+include (CheckTypeSize)
+
+set (CMAKE_EXTRA_INCLUDE_FILES sys/ioctl.h)
+CHECK_TYPE_SIZE("struct winsize" HAVE_STRUCT_WINSIZE)
+
 include (CheckSymbolExists)
 
 # first shot, maybe someday other libcs catch up...
