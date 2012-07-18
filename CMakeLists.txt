@@ -12,7 +12,7 @@ add_executable(dush dush.c)
 install (TARGETS dush DESTINATION bin)
 install (FILES dush.1 DESTINATION share/man/man1)
 
-set (CMAKE_C_FLAGS "-g -std=c99 -Wall -pedantic")
+set (CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 
 include (CheckIncludeFiles)
 
