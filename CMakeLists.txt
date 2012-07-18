@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (dush C)
 
 set (PROG_VERSION_MAJOR 0)
-set (PROG_VERSION_MINOR 3)
+set (PROG_VERSION_MINOR 4)
 
 # include binary file in order to find config.h
 include_directories("${PROJECT_BINARY_DIR}")
@@ -12,7 +12,7 @@ add_executable(dush dush.c)
 install (TARGETS dush DESTINATION bin)
 install (FILES dush.1 DESTINATION share/man/man1)
 
-set (CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
+set (CMAKE_C_FLAGS "-g -std=c99 -Wall -pedantic")
 
 include (CheckIncludeFiles)
 

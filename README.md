@@ -32,6 +32,9 @@ If no *PATH* is specified, dush starts at '.'.
 :   Include directories in the statistic. The size of a directory is the sum of
     the regular files in that directory (no subdirectories).
 
+-s, \--subdirs 
+:   Like *-d*, but also include the size of subdirectories. This option also enables *-d*
+
 -f, \--full
 :   Print full path of a file. Without it, display only the basename.
 
@@ -45,6 +48,10 @@ If no *PATH* is specified, dush starts at '.'.
 
 -h, \--help
 :   Display this help and exit.
+
+# NOTES
+
+If you compare the size with **du**(1), make sure to use **--apparent-size**
 
 # CONTRIBUTORS
 Benedikt Huber.

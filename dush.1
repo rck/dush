@@ -37,6 +37,12 @@ directory (no subdirectories).
 .RS
 .RE
 .TP
+.B -s, --subdirs
+Like \f[I]-d\f[], but also include the size of subdirectories.
+This option also enables \f[I]-d\f[]
+.RS
+.RE
+.TP
 .B -f, --full
 Print full path of a file.
 Without it, display only the basename.
@@ -61,6 +67,10 @@ Basically it enables \f[I]-f\f[], and disables all other gimmicks.
 Display this help and exit.
 .RS
 .RE
+.SH NOTES
+.PP
+If you compare the size with \f[B]du\f[](1), make sure to use
+\f[B]--apparent-size\f[]
 .SH CONTRIBUTORS
 .PP
 Benedikt Huber.

@@ -38,25 +38,32 @@ static unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
 static const char *name = "dush";
 static unsigned int fcount = 0;
 static volatile bool terminating = false;
+static bool top_dir = true;
 
 enum dispsize {G, M, K, B};
 static const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
 static struct args {
    long nbiggest;
-   bool full, graph, list, dirs, count;
+   bool full, graph, list, dirs, count, subdirs;
    enum dispsize size;
    const char *path;
-} args;
+} args = {0};
 
 struct finfo {
    char *name; /* key for dirs */
    unsigned long long size;
+};
+
+struct dinfo {
+   struct finfo finfo;
+   struct dinfo *parent, *child;
+   bool donated;
    UT_hash_handle hh; /* makes this structure hashable */
 };
 
 static struct finfo *nbiggestf = NULL;
-static struct finfo *biggest_dirs = NULL;
+static struct dinfo *all_dirs = NULL;
 
 /* prototypes */
 static void parse_args(int, char **, struct args *);
@@ -65,9 +72,9 @@ static void freeres(void);
 static void usage(void);
 static void signal_handler(int);
 
-static int size_sort(struct finfo *a, struct finfo *b)
+static int size_sort(struct dinfo *a, struct dinfo *b)
 {
-   return (b->size - a->size);
+   return (b->finfo.size - a->finfo.size);
 }
 
 static void insert_sorted(struct finfo *list, const char *name, unsigned long long size)
@@ -130,10 +137,37 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
       if (args.dirs)
       {
-         struct finfo *newdir = malloc(sizeof(*newdir));
-         newdir->size = 0;
-         newdir->name = strdup(path);
-         HASH_ADD_KEYPTR(hh, biggest_dirs, newdir->name, strlen(newdir->name), newdir);
+         struct dinfo *newdir = malloc(sizeof(*newdir));
+         newdir->finfo.size = 4096; /* maybe find a more clever way to figure that out */
+         newdir->finfo.name = strdup(path);
+         newdir->parent = NULL;
+         newdir->child = NULL;
+         newdir->donated = false;
+         HASH_ADD_KEYPTR(hh, all_dirs, newdir->finfo.name, strlen(newdir->finfo.name), newdir);
+
+         if (args.subdirs)
+         {
+            if (!top_dir) /* get parent */
+            {
+               struct dinfo *dir;
+               char *duppath = strdup(path);
+               char *dname = dirname(duppath);
+
+               HASH_FIND_STR(all_dirs, dname, dir);
+
+               if (dir) 
+               {
+                  dir->child = newdir;
+                  newdir->parent = dir;
+               }
+               else 
+                  fprintf(stderr, "something went wrong (%s)\n", path);
+
+               free(dname);
+            }
+            else
+               top_dir = false;
+         }
       }
    }
 
@@ -144,14 +178,14 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
       if (args.dirs)
       {
-         struct finfo *dir;
+         struct dinfo *dir;
          char *duppath = strdup(path);
          char *dname = dirname(duppath);
 
-         HASH_FIND_STR(biggest_dirs, dname, dir);
+         HASH_FIND_STR(all_dirs, dname, dir);
 
          if (dir) 
-            dir->size += sb->st_size;
+            dir->finfo.size += sb->st_size;
          else 
             fprintf(stderr, "something went wrong (%s)\n", path);
 
@@ -171,6 +205,7 @@ int main(int argc, char **argv)
    args.graph = false;
    args.list = false;
    args.dirs = false;
+   args.subdirs = false;
    args.count = false;
    args.size = M;
    args.nbiggest = 10;
@@ -212,15 +247,37 @@ int main(int argc, char **argv)
 
    if (args.dirs)
    {
-      HASH_SORT(biggest_dirs, size_sort);
-      struct finfo *s, *tmp;
-      HASH_ITER(hh, biggest_dirs, s, tmp)
+      struct dinfo *s, *tmp;
+
+      if (args.subdirs)
       {
-         if (s->size > nbiggestf[0].size)
-            insert_sorted(nbiggestf, s->name, s->size);
+         HASH_ITER(hh, all_dirs, s, tmp)
+         {
+            if (s->child == NULL) /* at a leaf, push size */
+            {
+               unsigned long long pushsize = 0;
+               while (s->parent != NULL)
+               {
+                  if (!s->donated)
+                  {
+                     pushsize = s->finfo.size;
+                     s->donated = true;
+                  }
+                  s->parent->finfo.size += pushsize;
+                  s = s->parent;
+               }
+            }
+         }
+      }
+
+      HASH_SORT(all_dirs, size_sort);
+
+      HASH_ITER(hh, all_dirs, s, tmp)
+      {
+         if (s->finfo.size > nbiggestf[0].size)
+            insert_sorted(nbiggestf, s->finfo.name, s->finfo.size);
          else
             break;
-         /* printf("%s %lld\n", s->name, s->size); */
       }
    }
 
@@ -267,7 +324,7 @@ int main(int argc, char **argv)
       /* non list-mode output */
       printf("%s: %lld %s\n",
             args.full ? nbiggestf[i].name : basename(nbiggestf[i].name),
-            (long long int)dsize, dispsizemap[args.size]);
+            dsize, dispsizemap[args.size]);
 
       if (args.graph)
       {
@@ -312,16 +369,12 @@ static void freeres(void)
 
    if (args.dirs)
    {
-      struct finfo *c, *tmp;
+      struct dinfo *c, *tmp;
 
-      HASH_ITER(hh, biggest_dirs, c, tmp)
+      HASH_ITER(hh, all_dirs, c, tmp)
       {
-         HASH_DEL(biggest_dirs, c);
-         /* printf("c->name: %p\n", c->name); */
-         /* printf("c->name: %s\n", c->name); */
-         /* printf("c->size: %lld\n", c->size); */
-         /* printf("c: %p\n", c); */
-         free(c->name);
+         HASH_DEL(all_dirs, c);
+         free(c->finfo.name);
          free(c);
       }
    }
@@ -335,22 +388,23 @@ static void parse_args(int argc, char **argv, struct args *args)
 
 #ifdef HAVE_GETOPT_LONG
    static struct option longopts[] = {
-      { "count",  no_argument,         NULL, 'c' },
-      { "list",   no_argument,         NULL, 'l' },
-      { "full",   no_argument,         NULL, 'f' },
-      { "dirs",   no_argument,         NULL, 'd' },
-      { "graph",  no_argument,         NULL, 'v' },
-      { "num",    required_argument,   NULL, 'n' },
-      { "help",   no_argument,         NULL, 'h' },
-      { NULL,     0,                   NULL, 0 }
+      { "count",     no_argument,         NULL, 'c' },
+      { "list",      no_argument,         NULL, 'l' },
+      { "full",      no_argument,         NULL, 'f' },
+      { "dirs",      no_argument,         NULL, 'd' },
+      { "subdirs",   no_argument,         NULL, 's' },
+      { "graph",     no_argument,         NULL, 'v' },
+      { "num",       required_argument,   NULL, 'n' },
+      { "help",      no_argument,         NULL, 'h' },
+      { NULL,        0,                   NULL, 0 }
    };
 #endif
 
 
 #ifdef HAVE_GETOPT_LONG
-   while ((opt = getopt_long(argc, argv, "dchlvgmkbfn:", longopts, NULL)) != -1)
+   while ((opt = getopt_long(argc, argv, "dschlvgmkbfn:", longopts, NULL)) != -1)
 #else
-   while ((opt = getopt(argc, argv, "dchlvgmkbfn:")) != -1)
+   while ((opt = getopt(argc, argv, "dschlvgmkbfn:")) != -1)
 #endif
    {
       switch (opt)
@@ -376,6 +430,9 @@ static void parse_args(int argc, char **argv, struct args *args)
          case 'f':
             args->full = true;
             break;
+         case 's':
+            args->subdirs = true;
+            /* fall through, enable dirs */
          case 'd':
             args->dirs = true;
             break;
@@ -455,6 +512,7 @@ static void usage(void)
          "  -l: print a list without any additional infos\n"
          "  -f: display full path (not only the basename)\n"
          "  -d: include stats for directories\n"
+         "  -s: account size of subdirectories\n"
          "  -c: enable count while reading\n"
          "  -n: NUM biggest files\n"
 #ifdef HAVE_GETOPT_LONG
