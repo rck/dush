@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (dush C)
 
 set (PROG_VERSION_MAJOR 0)
-set (PROG_VERSION_MINOR 4)
+set (PROG_VERSION_MINOR 5)
 
 # include binary file in order to find config.h
 include_directories("${PROJECT_BINARY_DIR}")
