@@ -163,7 +163,7 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
                else 
                   fprintf(stderr, "something went wrong (%s)\n", path);
 
-               free(dname);
+               free(duppath);
             }
             else
                top_dir = false;
