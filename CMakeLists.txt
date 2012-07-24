@@ -9,10 +9,20 @@ include_directories("${PROJECT_BINARY_DIR}")
 
 add_executable(dush dush.c)
 
+set (COMMON_FLAGS "-std=c99 -Wall -pedantic")
+
+if (CMAKE_BUILD_TYPE STREQUAL "debug")
+   set (DEBUG_FLAGS "-O0 -g")
+else()
+   set (CMAKE_BUILD_TYPE "release")
+endif()
+message ("-- Building target: ${CMAKE_BUILD_TYPE}")
+
+set (CMAKE_C_FLAGS_RELEASE "${COMMON_FLAGS}")
+set (CMAKE_C_FLAGS_DEBUG "${COMMON_FLAGS} ${DEBUG_FLAGS}")
+
 install (TARGETS dush DESTINATION bin)
 install (FILES dush.1 DESTINATION share/man/man1)
-
-set (CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 
 include (CheckIncludeFiles)
 
