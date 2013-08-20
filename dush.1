@@ -1,7 +1,7 @@
-.TH DUSH 1 "July 10, 2012" "Dush User Manual"
+.TH DUSH 1 "August 20, 2013" "Dush User Manual"
 .SH NAME
 .PP
-dush - find and display largest files/directories
+dush \- find and display largest files/directories
 .SH SYNOPSIS
 .PP
 dush [\f[I]OPTION\f[]]...
@@ -14,63 +14,69 @@ to the size of contained files and/or directories.
 If no \f[I]PATH\f[] is specified, dush starts at \[aq].\[aq].
 .SH OPTIONS
 .TP
-.B -b|k|m|g
+.B \-b|k|m|g
 Output size in bytes, KB, MB or GB.
 .RS
 .RE
 .TP
-.B -n \f[I]NUM\f[], --num \f[I]NUM\f[]
+.B \-n \f[I]NUM\f[], \-\-num \f[I]NUM\f[]
 Display \f[I]NUM\f[] largest files.
 .RS
 .RE
 .TP
-.B -v, --graph
+.B \-v, \-\-graph
 Print an ASCII graph showing how large files are compared to the largest
 one.
 .RS
 .RE
 .TP
-.B -d, --dirs
+.B \-d, \-\-dirs
 Include directories in the statistic.
 The size of a directory is the sum of the regular files in that
 directory (no subdirectories).
 .RS
 .RE
 .TP
-.B -s, --subdirs
-Like \f[I]-d\f[], but also include the size of subdirectories.
-This option also enables \f[I]-d\f[]
+.B \-s, \-\-subdirs
+Like \f[I]\-d\f[], but also include the size of subdirectories.
+This option also enables \f[I]\-d\f[]
 .RS
 .RE
 .TP
-.B -f, --full
+.B \-e \f[I]NAME\f[], \-\-exclude \f[I]NAME\f[]
+Exclude directories with the given \f[I]NAME\f[] (e.g., dush \-e .git
+\-e .svn ~)
+.RS
+.RE
+.TP
+.B \-f, \-\-full
 Print full path of a file.
 Without it, display only the basename.
 .RS
 .RE
 .TP
-.B -c, --count
+.B \-c, \-\-count
 Display a count while walking the directory tree (slows down output a
 bit).
 .RS
 .RE
 .TP
-.B -l, --list
+.B \-l, \-\-list
 Output only the file names, nothing else.
 This can be used to pipe the output to other programs (e.g., xargs rm
--rf).
-Basically it enables \f[I]-f\f[], and disables all other gimmicks.
+\-rf).
+Basically it enables \f[I]\-f\f[], and disables all other gimmicks.
 .RS
 .RE
 .TP
-.B -h, --help
+.B \-h, \-\-help
 Display this help and exit.
 .RS
 .RE
 .SH NOTES
 .PP
 If you compare the size with \f[B]du\f[](1), make sure to use
-\f[B]--apparent-size\f[]
+\f[B]\-\-apparent\-size\f[]
 .SH CONTRIBUTORS
 .PP
 Benedikt Huber.

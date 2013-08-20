@@ -37,8 +37,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
 static const char *name = "dush";
 static unsigned int fcount = 0;
+static unsigned long long dirsize = 4096; /* gets calculated later */
 static volatile bool terminating = false;
 static bool top_dir = true;
+
+static unsigned int excludecount = 0;
+static unsigned int excludeavail = 3;
+static char **excludes = NULL;
 
 enum dispsize {G, M, K, B};
 static const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
@@ -125,20 +130,14 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
    if (typeflag == FTW_D)
    {
-      unsigned int skip = 0;
-
-      /* hardcoded, maybe add an option or a .config */
-      skip += ignore(path, ".git");
-      skip += ignore(path, ".hg");
-      skip += ignore(path, ".svn");
-
-      if (skip != 0)
-         return FTW_SKIP_SUBTREE;
+      for (int i = 0; i < excludecount; ++i)
+         if (ignore(path, excludes[i]))
+            return FTW_SKIP_SUBTREE;
 
       if (args.dirs)
       {
          struct dinfo *newdir = malloc(sizeof(*newdir));
-         newdir->finfo.size = 4096; /* maybe find a more clever way to figure that out */
+         newdir->finfo.size = dirsize;
          newdir->finfo.name = strdup(path);
          newdir->parent = NULL;
          newdir->child = NULL;
@@ -358,6 +357,9 @@ int main(int argc, char **argv)
 static void freeres(void)
 {
    /* free stuff */
+   if (excludes != NULL)
+      free(excludes);
+
    if (nbiggestf != NULL)
    {
       for (int i = 0; i < args.nbiggest; ++i)
@@ -395,6 +397,7 @@ static void parse_args(int argc, char **argv, struct args *args)
       { "subdirs",   no_argument,         NULL, 's' },
       { "graph",     no_argument,         NULL, 'v' },
       { "num",       required_argument,   NULL, 'n' },
+      { "exclude",   required_argument,   NULL, 'e' },
       { "help",      no_argument,         NULL, 'h' },
       { NULL,        0,                   NULL, 0 }
    };
@@ -402,9 +405,9 @@ static void parse_args(int argc, char **argv, struct args *args)
 
 
 #ifdef HAVE_GETOPT_LONG
-   while ((opt = getopt_long(argc, argv, "dschlvgmkbfn:", longopts, NULL)) != -1)
+   while ((opt = getopt_long(argc, argv, "dschlvgmkbfn:e:", longopts, NULL)) != -1)
 #else
-   while ((opt = getopt(argc, argv, "dschlvgmkbfn:")) != -1)
+   while ((opt = getopt(argc, argv, "dschlvgmkbfn:e:")) != -1)
 #endif
    {
       switch (opt)
@@ -460,6 +463,27 @@ static void parse_args(int argc, char **argv, struct args *args)
             if (optn <= 0) optn = 1;
             args->nbiggest = optn;
             break;
+         case 'e':
+            if (excludecount == 0)
+               excludes = malloc(excludecount * sizeof(*excludes));
+            if (excludes == NULL)
+            {
+               perror(name);
+               exit(EXIT_FAILURE);
+            }
+
+            if (excludecount == excludeavail)
+            {
+               excludeavail *= 2;
+               excludes = realloc(excludes, excludeavail * sizeof(*excludes));
+               if (excludes == NULL)
+               {
+                  perror(name);
+                  exit(EXIT_FAILURE);
+               }
+            }
+            excludes[excludecount++] = optarg;
+            break;
          case 'h':
             /* fall through */
          default: /* '?' */
@@ -480,7 +504,10 @@ static void parse_args(int argc, char **argv, struct args *args)
       }
       
       if (S_ISDIR(sb.st_mode))
+      {
          args->path = path;
+         dirsize = sb.st_size;
+      }
       else 
       {
          fprintf(stderr, "%s is not a directory\n", path);
@@ -508,6 +535,8 @@ static void usage(void)
          "Usage: %s [OPTION]... [PATH]\n"
          "  -h: print this help\n"
          "  -b|k|m|g: size in B, KB, MB, GB\n"
+         "  -e: exclude directories with the given extension\n"
+         "      e.g.: dush -e .git -e .svn ~\n"
          "  -v: print a graph\n"
          "  -l: print a list without any additional infos\n"
          "  -f: display full path (not only the basename)\n"

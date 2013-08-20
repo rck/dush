@@ -1,6 +1,6 @@
 % DUSH(1) Dush User Manual
 % Roland Kammerer
-% July 10, 2012
+% August 20, 2013
 
 # NAME
 
@@ -34,6 +34,9 @@ If no *PATH* is specified, dush starts at '.'.
 
 -s, \--subdirs 
 :   Like *-d*, but also include the size of subdirectories. This option also enables *-d*
+
+-e *NAME*, \--exclude *NAME*
+:   Exclude directories with the given *NAME* (e.g., dush -e .git -e .svn ~)
 
 -f, \--full
 :   Print full path of a file. Without it, display only the basename.
