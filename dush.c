@@ -470,12 +470,14 @@ static void parse_args(int argc, char **argv, struct args *args)
             break;
          case 'e':
             if (excludecount == 0)
+            {
                excludes = malloc(excludeavail * sizeof(*excludes));
 
-            if (excludes == NULL)
-            {
-               perror(name);
-               exit(EXIT_FAILURE);
+               if (excludes == NULL)
+               {
+                  perror(name);
+                  exit(EXIT_FAILURE);
+               }
             }
 
             if (excludecount == excludeavail)
