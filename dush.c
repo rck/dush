@@ -41,10 +41,6 @@ static unsigned long long dirsize = 4096; /* gets calculated later */
 static volatile bool terminating = false;
 static bool top_dir = true;
 
-static unsigned int excludecount = 0;
-static unsigned int excludeavail = 3;
-static char **excludes = NULL;
-
 enum dispsize {G, M, K, B};
 static const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
@@ -67,12 +63,22 @@ struct dinfo {
    UT_hash_handle hh; /* makes this structure hashable */
 };
 
+struct exclinfo {
+   char *name;
+   size_t length;
+};
+
 static struct finfo *nbiggestf = NULL;
 static struct dinfo *all_dirs = NULL;
 
+static unsigned int excludecount = 0;
+static unsigned int excludeavail = 3;
+static struct exclinfo *excludes = NULL;
+
+
 /* prototypes */
 static void parse_args(int, char **, struct args *);
-static int ignore(const char *, const char *);
+static bool ignore_dir(const char *);
 static void freeres(void);
 static void usage(void);
 static void signal_handler(int);
@@ -130,9 +136,8 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
    if (typeflag == FTW_D)
    {
-      for (int i = 0; i < excludecount; ++i)
-         if (ignore(path, excludes[i]))
-            return FTW_SKIP_SUBTREE;
+      if (excludecount > 0  && ignore_dir(path))
+         return FTW_SKIP_SUBTREE;
 
       if (args.dirs)
       {
@@ -465,7 +470,8 @@ static void parse_args(int argc, char **argv, struct args *args)
             break;
          case 'e':
             if (excludecount == 0)
-               excludes = malloc(excludecount * sizeof(*excludes));
+               excludes = malloc(excludeavail * sizeof(*excludes));
+
             if (excludes == NULL)
             {
                perror(name);
@@ -482,7 +488,9 @@ static void parse_args(int argc, char **argv, struct args *args)
                   exit(EXIT_FAILURE);
                }
             }
-            excludes[excludecount++] = optarg;
+            excludes[excludecount].name = optarg;
+            excludes[excludecount].length = strlen(optarg);
+            excludecount++;
             break;
          case 'h':
             /* fall through */
@@ -517,15 +525,26 @@ static void parse_args(int argc, char **argv, struct args *args)
    /* else it already defaults to "." */
 }
 
-static int ignore(const char *heystack, const char *needle)
+static bool ignore_dir(const char *path)
 {
-   size_t n = strlen(needle);
-   const char *pos = heystack + strlen(heystack) - n;
+   size_t np = strlen(path);
 
-   if (strncmp(pos, needle, n) == 0)
-      return 1;
+   for (int i = 0; i < excludecount; ++i)
+   {
+      size_t nn = excludes[i].length;
+      if (np < nn)
+         return false;
 
-   return 0;
+      const char *needle = excludes[i].name;
+      const char *pos = path + np - nn;
+
+      if (strncmp(pos, needle, nn) == 0)
+      {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 static void usage(void)
