@@ -108,7 +108,7 @@ static void insert_sorted(struct finfo *list, const char *name, unsigned long lo
          list[i] = list[i+1];
          list[i+1] = tmp;
       }
-      else 
+      else
          break;
    }
 }
@@ -159,12 +159,12 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
                HASH_FIND_STR(all_dirs, dname, dir);
 
-               if (dir) 
+               if (dir)
                {
                   dir->child = newdir;
                   newdir->parent = dir;
                }
-               else 
+               else
                   fprintf(stderr, "something went wrong (%s)\n", path);
 
                free(duppath);
@@ -175,7 +175,7 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
       }
    }
 
-   if (typeflag == FTW_F) 
+   if (typeflag == FTW_F)
    {
       if (nbiggestf[0].size < sb->st_size) /* add it to list of biggest files */
          insert_sorted(nbiggestf, path, sb->st_size);
@@ -188,9 +188,9 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
 
          HASH_FIND_STR(all_dirs, dname, dir);
 
-         if (dir) 
+         if (dir)
             dir->finfo.size += sb->st_size;
-         else 
+         else
             fprintf(stderr, "something went wrong (%s)\n", path);
 
          free(duppath);
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
    /* setup signal handler */
    sigset_t blocked_signals;
 
-   if(sigfillset(&blocked_signals) == -1) 
+   if(sigfillset(&blocked_signals) == -1)
       exit(EXIT_FAILURE);
    else
    {
@@ -227,8 +227,8 @@ int main(int argc, char **argv)
       s.sa_handler = signal_handler;
       (void) memcpy(&s.sa_mask, &blocked_signals, sizeof(s.sa_mask));
       s.sa_flags = SA_RESTART;
-      for(int i = 0; i < COUNT_OF(signals); ++i) 
-         if (sigaction(signals[i], &s, NULL) < 0) 
+      for(int i = 0; i < COUNT_OF(signals); ++i)
+         if (sigaction(signals[i], &s, NULL) < 0)
          {
             perror(name);
             exit(EXIT_FAILURE);
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
       perror(name);
       exit(EXIT_FAILURE);
    }
-   
+
    nftw(args.path, walkdirs, 50, FTW_ACTIONRETVAL|FTW_PHYS);
 
    if (args.dirs)
@@ -449,7 +449,7 @@ static void parse_args(int argc, char **argv, struct args *args)
             break;
          case 'n':
             errno = 0;
-            optn = strtol(optarg, &endptr, 10); 
+            optn = strtol(optarg, &endptr, 10);
 
             if ((errno == ERANGE && (optn == LONG_MAX || optn == LONG_MIN))
                   || (errno != 0 && optn == 0))
@@ -512,13 +512,13 @@ static void parse_args(int argc, char **argv, struct args *args)
          perror(name);
          exit(EXIT_FAILURE);
       }
-      
+
       if (S_ISDIR(sb.st_mode))
       {
          args->path = path;
          dirsize = sb.st_size;
       }
-      else 
+      else
       {
          fprintf(stderr, "%s is not a directory\n", path);
          exit(EXIT_FAILURE);
@@ -551,7 +551,7 @@ static bool ignore_dir(const char *path)
 
 static void usage(void)
 {
-   fprintf(stderr, 
+   fprintf(stderr,
          "%s Version %d.%d:\n\n"
          "Usage: %s [OPTION]... [PATH]\n"
          "  -h: print this help\n"
