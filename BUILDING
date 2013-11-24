@@ -1,7 +1,7 @@
 # Building from Source
 - get source code
 - get cmake
-- get uthash (e.g., uthash-dev on debian based systems, from AUR on Arch)
+- get uthash (e.g., uthash-dev on debian based systems)
 - extract source code and cd to it
 - $ mkdir build
 - $ cd build
@@ -10,9 +10,7 @@
  
 # Packaging
 ## Arch GNU/Linux
-- $ mkdir ~/build/dush
-- cp the provided PKGBUILD to ~/build/dush
-- $ cd ~/build/dush
+- get PKGBUILD from AUR ( https://aur.archlinux.org/packages/dush/ )
 - $ makepkg -srci
 
 ## deb based
