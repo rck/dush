@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include <ftw.h>
 
 /* "external" sources */
@@ -37,7 +38,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static unsigned int width = 77; /* 80 - "FILE MODE" (1 char) -  [] */
 static const char *name = "dush";
 static unsigned int fcount = 0;
-static unsigned long long dirsize = 4096; /* gets calculated later */
 static volatile bool terminating = false;
 static bool top_dir = true;
 
@@ -46,7 +46,7 @@ static const char * const dispsizemap[] = {"GB", "MB", "KB", "B"};
 
 static struct args {
    long nbiggest;
-   bool full, graph, list, dirs, count, subdirs;
+   bool full, graph, list, dirs, count, subdirs, table;
    enum dispsize size;
    const char *path;
 } args = {0};
@@ -75,11 +75,14 @@ static unsigned int excludecount = 0;
 static unsigned int excludeavail = 3;
 static struct exclinfo *excludes = NULL;
 
+/* column -t output */
+/* static int pc[2]; */
 
 /* prototypes */
 static void parse_args(int, char **, struct args *);
 static bool ignore_dir(const char *);
-static void freeres(void);
+static void print_biggest(void);
+static void freeres_exit(int);
 static void usage(void);
 static void signal_handler(int);
 
@@ -142,7 +145,7 @@ static int walkdirs(const char *path, const struct stat *sb, int typeflag, struc
       if (args.dirs)
       {
          struct dinfo *newdir = malloc(sizeof(*newdir));
-         newdir->finfo.size = dirsize;
+         newdir->finfo.size = sb->st_size;
          newdir->finfo.name = strdup(path);
          newdir->parent = NULL;
          newdir->child = NULL;
@@ -211,6 +214,7 @@ int main(int argc, char **argv)
    args.dirs = false;
    args.subdirs = false;
    args.count = false;
+   args.table = false;
    args.size = M;
    args.nbiggest = 10;
    args.path = ".";
@@ -237,7 +241,11 @@ int main(int argc, char **argv)
 
    parse_args(argc, argv, &args);
 
-   if (args.list) args.count = false;
+   if (args.list) /* disable other gimmicks */
+   {
+      args.count = false;
+      args.table = false;
+   }
 
    nbiggestf = calloc(args.nbiggest, sizeof(*nbiggestf));
 
@@ -285,11 +293,65 @@ int main(int argc, char **argv)
       }
    }
 
-   unsigned long long max = nbiggestf[args.nbiggest - 1].size;
 
    /* print result */
    if (args.count) printf("\r%d files/directories\n", fcount);
 
+   if (args.table)
+   {
+      int pc[2]; /* partent -> child pipe */
+      if (pipe(pc) == -1)
+      {
+         perror(name);
+         freeres_exit(EXIT_FAILURE);
+      }
+
+      pid_t column = fork();
+      switch (column)
+      {
+         case -1:
+            perror(name);
+            freeres_exit(EXIT_FAILURE);
+            break; /* never reached */
+
+         case 0: /* child */
+            close(pc[fileno(stdout)]);
+            dup2(pc[fileno(stdin)], fileno(stdin));
+            if ((execlp("column", "column", "-t", (char *)NULL)) == -1)
+            {
+               perror("column");
+               fprintf(stderr, "Make sure 'column' is installed\n");
+               freeres_exit(EXIT_FAILURE);
+            }
+            break; /* never reached */
+
+         default: /* parent */
+            close(pc[fileno(stdin)]);
+            dup2(pc[fileno(stdout)], fileno(stdout));
+
+            print_biggest();
+            fflush(stdout);
+
+            close(pc[fileno(stdout)]);
+            close(fileno(stdout));
+
+            int status;
+            waitpid(column, &status, 0);
+            freeres_exit(WEXITSTATUS(status));
+            break; /* never reached */
+      }
+   }
+
+   print_biggest();
+
+   freeres_exit(EXIT_SUCCESS);
+
+   /* never reached */
+   return EXIT_SUCCESS;
+}
+
+static void print_biggest(void)
+{
    /* get terminal width if possible */
 #ifdef HAVE_STRUCT_WINSIZE
    struct winsize w;
@@ -336,8 +398,7 @@ int main(int argc, char **argv)
 
          if (stat(nbiggestf[i].name, &sb) == -1)
          {
-            freeres();
-            exit(EXIT_FAILURE);
+            freeres_exit(EXIT_FAILURE);
          }
 
          if (S_ISREG(sb.st_mode))
@@ -348,18 +409,15 @@ int main(int argc, char **argv)
             putchar('-');
 
          fputs("[", stdout);
+         unsigned long long max = nbiggestf[args.nbiggest - 1].size;
          for (unsigned long long j = 0; j < (unsigned long long)nbiggestf[i].size * width; j += max)
             putchar('#');
          puts("]");
       }
    }
-
-   freeres();
-
-   return 0;
 }
 
-static void freeres(void)
+static void freeres_exit(int retcode)
 {
    /* free stuff */
    if (excludes != NULL)
@@ -385,6 +443,8 @@ static void freeres(void)
          free(c);
       }
    }
+
+   exit(retcode);
 }
 
 static void parse_args(int argc, char **argv, struct args *args)
@@ -403,6 +463,7 @@ static void parse_args(int argc, char **argv, struct args *args)
       { "graph",     no_argument,         NULL, 'v' },
       { "num",       required_argument,   NULL, 'n' },
       { "exclude",   required_argument,   NULL, 'e' },
+      { "table",     no_argument,         NULL, 't' },
       { "help",      no_argument,         NULL, 'h' },
       { NULL,        0,                   NULL, 0 }
    };
@@ -410,9 +471,9 @@ static void parse_args(int argc, char **argv, struct args *args)
 
 
 #ifdef HAVE_GETOPT_LONG
-   while ((opt = getopt_long(argc, argv, "dschlvgmkbfn:e:", longopts, NULL)) != -1)
+   while ((opt = getopt_long(argc, argv, "dschlvgmkbftn:e:", longopts, NULL)) != -1)
 #else
-   while ((opt = getopt(argc, argv, "dschlvgmkbfn:e:")) != -1)
+   while ((opt = getopt(argc, argv, "dschlvgmkbftn:e:")) != -1)
 #endif
    {
       switch (opt)
@@ -494,6 +555,9 @@ static void parse_args(int argc, char **argv, struct args *args)
             excludes[excludecount].length = strlen(optarg);
             excludecount++;
             break;
+         case 't':
+            args->table = true;
+            break;
          case 'h':
             /* fall through */
          default: /* '?' */
@@ -516,7 +580,6 @@ static void parse_args(int argc, char **argv, struct args *args)
       if (S_ISDIR(sb.st_mode))
       {
          args->path = path;
-         dirsize = sb.st_size;
       }
       else
       {
@@ -564,6 +627,7 @@ static void usage(void)
          "  -d: include stats for directories\n"
          "  -s: account size of subdirectories\n"
          "  -c: enable count while reading\n"
+         "  -t: output formatted as table\n"
          "  -n: NUM biggest files\n"
 #ifdef HAVE_GETOPT_LONG
          "\nFor long options please refere to the man page\n"

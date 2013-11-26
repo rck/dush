@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (dush C)
 
 set (PROG_VERSION_MAJOR 0)
-set (PROG_VERSION_MINOR 8)
+set (PROG_VERSION_MINOR 9)
 
 # include binary file in order to find config.h
 include_directories("${PROJECT_BINARY_DIR}")
@@ -66,11 +66,11 @@ configure_file (
 # generall:
 include (InstallRequiredSystemLibraries)
 set (CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
-set (CPACK_PACKAGE_CONTACT 
+set (CPACK_PACKAGE_CONTACT
    "Roland Kammerer <dev.rck@gmail.com>")
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY 
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY
    "find and display largest files/directories")
-set (CPACK_RESOURCE_FILE_LICENSE  
+set (CPACK_RESOURCE_FILE_LICENSE
    "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
 set (CPACK_PACKAGE_VERSION_MAJOR "${PROG_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${PROG_VERSION_MINOR}")

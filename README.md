@@ -44,6 +44,9 @@ If no *PATH* is specified, dush starts at '.'.
 -c, \--count
 :   Display a count while walking the directory tree (slows down output a bit).
 
+-t, \--table
+:   Filter output with **column -t**
+
 -l, \--list
 :   Output only the file names, nothing else. This can be used to pipe the output
     to other programs (e.g., xargs rm -rf). Basically it enables *-f*, and disables
