@@ -11,6 +11,9 @@ add_executable(dush dush.c)
 
 set (COMMON_FLAGS "-std=c99 -Wall -pedantic")
 
+# enable 64 bits off_t on 32 bits platforms
+add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
+
 if (CMAKE_BUILD_TYPE STREQUAL "debug")
    set (DEBUG_FLAGS "-O0 -g")
 else()
